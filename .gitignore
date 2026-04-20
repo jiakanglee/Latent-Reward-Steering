@@ -9,12 +9,9 @@ base_models_reasoning_interp.egg-info/
 **/hf_cache/
 
 # ---------------------------------------------------------------------------
-# log2：实验产物默认忽略；仅收录 log2/slurms/ 下提交用的 Slurm（见 README_SLURMS）
+# log2：本地实验产物与输出，不入库
 # ---------------------------------------------------------------------------
-log2/*
-!log2/README_SLURMS.md
-!log2/slurms/
-!log2/slurms/**
+log2/
 
 logs/
 
