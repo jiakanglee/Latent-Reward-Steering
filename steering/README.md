@@ -1,6 +1,8 @@
 # Steering（主实验）
 
 - **入口**：`run_basic_overwrite.py` — 迭代 latent steering。
-- **Slurm**：`run_basic_overwrite.slurm`、`run_gpqa_diamond_aime_rm_mcq_collect_ilab2.slurm`、`run_dump_gpqa_decode_sample.slurm`（均在仓库根目录 `sbatch steering/<脚本>.slurm`）。
+- **AIME 一条龙**：先在根目录备好 `transformer_reward_model_aime_best.pt`，再  
+  `sbatch steering/run_aime24.slurm` 或 `sbatch steering/run_aime25.slurm`。  
+  大规模扫参见 `run_aime24_steer_sweep_ilab2.slurm`、`run_aime25_steer_sweep_ilab2.slurm` 等。
 
-仓库根目录还有历史/集群定制的其它 `run_*.slurm`，可按需选用；模板与说明以本目录为准。
+仓库根目录另有历史 `run_*.slurm` 副本时，以本目录版本为准。

@@ -21,69 +21,80 @@ uv sync
 
 ## Workflow (latent reward steering)
 
-Run everything from the **repository root** (`PYTHONPATH` should include the repo root; Slurm scripts `cd` there automatically). The pipeline is:
+Run everything from the **repository root**. Slurm scripts assume that directory, set `PYTHONPATH`, and write under `log2/`.
 
-**collect SAE latents → train Transformer reward model → run iterative steering.**
+End-to-end **AIME** pipeline (matches the checked-in Slurm under `collect_data/`, `train_reward_model/`, `steering/`):
 
-### 1. Collect data
+| Stage | Artifact |
+|-------|----------|
+| Collect | `collected_sae_latents_10dim_4000_aime24_aime25.pt` |
+| Train RM | `transformer_reward_model_aime_best.pt` (written next to `--save_path` with `_best` suffix) |
+| Steer | Uses `transformer_reward_model_aime_best.pt`; SAE layer **20**, clusters **10**, ORZ-7B |
 
-Roll out the model with the SAE pipeline and save latent traces (`.pt`) for supervised reward training.
+Defaults in the scripts: **`aime24_aime25`** rollouts, **`max_token=4000`**, training **`epochs=30`**, **`lr=5e-4`**. Steering jobs (e.g. `run_aime24.slurm`) use **`max_token=4000`**, **`num_steps=4`**, **`reward_threshold=0.9`**, **`confidence_threshold=0.72`**, **`step_size=1.15`**.
+
+### 1. Collect data (AIME 2024 + AIME 2025 latents)
+
+Same call as `collect_data/run_collect_aime.slurm`:
 
 ```bash
 python collect_data/generate_data_7B.py \
   --dataset aime24_aime25 \
-  --num_examples 200 \
   --max_token 4000 \
-  --sae_layer 20 \
-  --n_clusters 10
+  --output_file collected_sae_latents_10dim_4000_aime24_aime25.pt
 ```
 
-Cluster jobs (same defaults, override with env vars in the script):
+Cluster:
 
 ```bash
-sbatch collect_data/generate_data_7B.slurm
+sbatch collect_data/run_collect_aime.slurm
 ```
 
-See `collect_data/README.md` for details and additional Slurm helpers.
+(Optional: `--load_in_8bit` if you hit OOM on a small GPU.)
 
-### 2. Train reward model
+### 2. Train reward model (on that `.pt`)
 
-Train the Transformer classifier on the collected tensors (adjust `--data_file` to match the file produced above).
+Same as `train_reward_model/run_train_aime_classifier.slurm`:
 
 ```bash
 python train_reward_model/train_latent_classifier_7B.py \
-  --data_file collected_sae_latents_10dim_2000.pt \
-  --save_path transformer_reward_model.pt \
-  --epochs 50 \
+  --data_file collected_sae_latents_10dim_4000_aime24_aime25.pt \
+  --save_path transformer_reward_model_aime.pt \
+  --epochs 30 \
+  --lr 0.0005 \
   --hidden_dim 128
 ```
 
+This produces **`transformer_reward_model_aime_best.pt`** in the repo root.
+
 ```bash
-sbatch train_reward_model/train_latent_classifier_7B.slurm
+sbatch train_reward_model/run_train_aime_classifier.slurm
 ```
 
-See `train_reward_model/README.md`.
+### 3. Main experiment (AIME steering)
 
-### 3. Main steering experiment
+Place or symlink **`transformer_reward_model_aime_best.pt`** in the repo root (the Slurm below expects that filename). Then run the full benchmark, e.g. **AIME 2024** (30 problems, 2× GPU shard in the template):
 
-Run iterative latent steering with a trained reward checkpoint and cluster SAE config aligned with collection.
+```bash
+sbatch steering/run_aime24.slurm
+```
+
+For **AIME 2025**, use `steering/run_aime25.slurm`. Larger hyperparameter sweeps live in `steering/run_aime24_steer_sweep_ilab2.slurm`, `steering/run_aime25_steer_sweep_ilab2.slurm`, etc.; all point at `transformer_reward_model_aime_best.pt`.
+
+Minimal manual invocation (same knob bundle as `run_aime24.slurm`; adjust `--dataset` / `--num_examples` for AIME25):
 
 ```bash
 python steering/run_basic_overwrite.py \
   --model Open-Reasoner-Zero/Open-Reasoner-Zero-7B \
-  --sae_layer 20 \
-  --n_clusters 10 \
-  --reward_model_path transformer_reward_model.pt \
-  --step_size 2.0 \
-  --num_steps 5 \
-  --max_token 2000
+  --sae_layer 20 --n_clusters 10 \
+  --reward_model_path transformer_reward_model_aime_best.pt \
+  --step_size 1.15 --num_steps 4 --max_token 4000 \
+  --reward_threshold 0.9 --confidence_threshold 0.72 \
+  --dataset aime24 --num_examples 30 \
+  --print_response --save_judge_reason
 ```
 
-```bash
-sbatch steering/run_gpqa_diamond_aime_rm_mcq_collect_ilab2.slurm   # example: GPQA + MCQ sweep
-```
-
-See `steering/README.md` and the `steering/*.slurm` scripts for cluster-specific settings.
+See `collect_data/README.md`, `train_reward_model/README.md`, and `steering/README.md` for paths and extra Slurm jobs.
 
 ### Other code in this repo
 
