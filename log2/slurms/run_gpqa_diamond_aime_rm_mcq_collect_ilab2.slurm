@@ -1,12 +1,6 @@
 #!/bin/bash
-# GPQA-Diamond：与 run_gpqa_diamond_aime_rm.slurm 同 setting（AIME RM、t4000、ns=4、reward=0.9、conf=0.72、step=1.15）。
-# 判题：run_basic_overwrite 中 gpqa → evaluate_gpqa（extract_choice_letter），非 LLM judge。
-# 收集：judge_reasons/*.json 含 gold_letter、extracted_letter；默认同时写入 response_base/response_steer 全文（--save_judge_with_text）。
-# 省磁盘时提交前：export SAVE_JUDGE_WITH_TEXT=0
-# 调试「模型到底打了什么字」：sbatch 单题导出（与主实验同 prompt / greedy）：
-#   sbatch run_dump_gpqa_decode_sample.slurm
-#   QUESTION_IDX=4 sbatch run_dump_gpqa_decode_sample.slurm
-# 结束后 collect_gpqa_mcqa_summary.py 写 gpqa_mcqa_summary.csv。
+# GPQA-Diamond + AIME RM + MCQ 规则判题 + collect 汇总（输出到 log2/gpqa_diamond_aime_mcq_<JOBID>/）
+# 提交: 在仓库根目录  sbatch log2/slurms/run_gpqa_diamond_aime_rm_mcq_collect_ilab2.slurm
 #
 #SBATCH --job-name=GPQA_MCQ_AIME
 #SBATCH --output=log2/gpqa_diamond_aime_mcq_%j.out
@@ -14,40 +8,50 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
-#SBATCH --mem=13G
+#SBATCH --mem=14G
 #SBATCH --time=72:00:00
 #SBATCH --partition=unlimited
-#SBATCH --nodelist=rlab6
 #SBATCH --gres=gpu:a5000:2
 
-export PYTHONNOUSERSITE=1
-source /common/home/jl3614/miniconda/etc/profile.d/conda.sh
-conda activate stllms_env
+set -euo pipefail
 
-cd /common/home/jl3614/Desktop/Python_project/thinking-llms-interp
+_SL="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export REPO_ROOT="$(cd "${_SL}/../.." && pwd)"
+cd "$REPO_ROOT"
 mkdir -p log2
 export PYTHONPATH=$PWD:$PYTHONPATH
 
+export PYTHONNOUSERSITE=1
+if [ -n "${CONDA_INIT_SH:-}" ] && [ -f "${CONDA_INIT_SH}" ]; then
+  # shellcheck source=/dev/null
+  source "${CONDA_INIT_SH}"
+elif [ -f "${HOME}/miniconda3/etc/profile.d/conda.sh" ]; then
+  # shellcheck source=/dev/null
+  source "${HOME}/miniconda3/etc/profile.d/conda.sh"
+elif [ -f "${HOME}/anaconda3/etc/profile.d/conda.sh" ]; then
+  # shellcheck source=/dev/null
+  source "${HOME}/anaconda3/etc/profile.d/conda.sh"
+fi
+conda activate "${CONDA_ENV:-stllms_env}"
+
 if [ -x "$PWD/.venv/bin/python3" ]; then PYCMD="$PWD/.venv/bin/python3"; else PYCMD="python"; fi
 
-REWARD_MODEL="transformer_reward_model_aime_best.pt"
-REWARD=0.9
-MAX_TOKEN=4000
-NSTEPS=4
-CONF=0.72
-STEP=1.15
+REWARD_MODEL="${REWARD_MODEL:-transformer_reward_model_aime_best.pt}"
+REWARD="${REWARD:-0.9}"
+MAX_TOKEN="${MAX_TOKEN:-4000}"
+NSTEPS="${NSTEPS:-4}"
+CONF="${CONF:-0.72}"
+STEP="${STEP:-1.15}"
 
 LOG_DIR="log2/gpqa_diamond_aime_mcq_${SLURM_JOB_ID}"
 mkdir -p "$LOG_DIR/judge_reasons"
 
-# 默认 1：JSON 中带完整解码，便于对照 extract；198 题×双路体积大，关掉：export SAVE_JUDGE_WITH_TEXT=0
 SAVE_JUDGE_WITH_TEXT="${SAVE_JUDGE_WITH_TEXT:-1}"
 
-NUM_GPUS=$(echo "$CUDA_VISIBLE_DEVICES" | tr ',' '\n' | wc -l)
-if [ "$NUM_GPUS" -eq 0 ]; then NUM_GPUS=4; fi
+NUM_GPUS=$(echo "${CUDA_VISIBLE_DEVICES:-}" | tr ',' '\n' | sed '/^$/d' | wc -l)
+if [ "${NUM_GPUS:-0}" -eq 0 ]; then NUM_GPUS=2; fi
 
-echo "GPQA-Diamond | rule MCQ extract | AIME RM | t=${MAX_TOKEN} n=${NSTEPS} r=${REWARD} c=${CONF} step=${STEP}"
-echo "LOG_DIR=$LOG_DIR  SAVE_JUDGE_WITH_TEXT=$SAVE_JUDGE_WITH_TEXT"
+echo "GPQA-Diamond | LOG_DIR=$LOG_DIR  SAVE_JUDGE_WITH_TEXT=$SAVE_JUDGE_WITH_TEXT"
 echo "Date: $(date)"
 
 EXTRA=(--save_judge_with_text)
@@ -73,8 +77,8 @@ for ((i=0; i<NUM_GPUS; i++)); do
     --save_judge_reason \
     "${EXTRA[@]}" \
     --judge_reason_dir "${LOG_DIR}/judge_reasons" \
-    --shard_id $i \
-    --num_shards $NUM_GPUS \
+    --shard_id "$i" \
+    --num_shards "$NUM_GPUS" \
     > "${LOG_DIR}/log_worker_${i}.txt" 2>&1 &
   pids+=($!)
 done
@@ -82,7 +86,7 @@ done
 for pid in "${pids[@]}"; do wait "$pid"; done
 
 RESULTS_FILE="log2/gpqa_diamond_aime_mcq_results_${SLURM_JOB_ID}.txt"
-echo "=== GPQA-Diamond MCQ extract + AIME RM: t=$MAX_TOKEN n=$NSTEPS reward=$REWARD conf=$CONF step=$STEP (198 questions) ===" > "$RESULTS_FILE"
+echo "=== GPQA-Diamond MCQ ===" > "$RESULTS_FILE"
 $PYCMD collect_sweep_results.py \
   --log_dir "$LOG_DIR" \
   --output "$RESULTS_FILE" \
@@ -90,8 +94,6 @@ $PYCMD collect_sweep_results.py \
 
 $PYCMD collect_gpqa_mcqa_summary.py "$LOG_DIR"
 
-echo ""
 cat "$RESULTS_FILE"
-echo "---"
 echo "CSV: ${LOG_DIR}/gpqa_mcqa_summary.csv"
 echo "Date: $(date)"

@@ -69,29 +69,49 @@ def evaluate_math(
 
 
 def extract_choice_letter(text: str, valid: Optional[str] = None) -> Optional[str]:
-    """Last high-confidence multiple-choice letter from model output."""
+    """Extract A–Z choice from model output; **rightmost** high-confidence match wins."""
     if not text:
         return None
     t = text.upper()
     if valid is None:
         valid = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-    patterns = [
-        r"(?:FINAL\s+)?(?:ANSWER|CHOICE|OPTION)\s*[:.)-]\s*([A-Z])\b",
-        r"\\boxed\{([A-Z])\}",
-        r"\*\*([A-Z])\*\*(?=\s|$|[^A-Z*])",
-        r"(?:SELECTED|CHOSEN)\s+OPTION\s+IS\s+([A-Z])\b",
-        r"\bTHE\s+CORRECT\s+(?:ANSWER|OPTION)\s+IS\s+([A-Z])\b",
-        r"\(([A-Z])\)\s*(?:IS\s+)?CORRECT",
-    ]
+    # LaTeX \\boxed{A}: use r"\\boxed" (one backslash in the regex, via pair `\\` in the raw string).
+    # Match on **original** `text` with re.IGNORECASE — `text.upper()` turns "\\boxed" into "\\BOXED"
+    # and a literal "boxed" pattern on `t` would miss.
+    boxed = r"\\boxed\s*\{\s*([A-Za-z])\s*\}"
+    # `<answer>` 内常有长句再接 `\boxed{X}`（非紧邻标签）。
+    boxed_wrap = r"<answer>\s*(?:[\s\S]*?)\\boxed\s*\{\s*([A-Za-z])\s*\}"
     best_pos = -1
     best: Optional[str] = None
+
+    def consider(m: re.Match[str]) -> None:
+        nonlocal best_pos, best
+        ch = m.group(1).upper()
+        if ch in valid and m.start() >= best_pos:
+            best_pos = m.start()
+            best = ch
+
+    for pat in (boxed, boxed_wrap):
+        for m in re.finditer(pat, text, flags=re.IGNORECASE | re.DOTALL):
+            consider(m)
+
+    patterns = [
+        r"(?:FINAL\s+)?(?:ANSWER|CHOICE|OPTION)\s*[:.)-]\s*\(?([A-Z])\)?(?:\b|\.|,|\))",
+        r"(?:FINAL\s+)?(?:ANSWER|CHOICE|OPTION)\s*[:.)-]\s*([A-Z])\b",
+        r"\*\*([A-Z])\*\*(?=\s|$|[^A-Z*])",
+        r"(?:SELECTED|CHOSEN)\s+OPTION\s+IS\s+([A-Z])\b",
+        r"\bTHE\s+CORRECT\s+(?:ANSWER|OPTION)\s+IS\s+\(([A-Z])\)",
+        r"\bTHE\s+CORRECT\s+(?:ANSWER|OPTION)\s+IS\s+([A-Z])\b",
+        r"\bCORRECT\s+(?:ANSWER|OPTION)\s+IS\s+\(([A-Z])\)",
+        r"\bCORRECT\s+(?:ANSWER|OPTION)\s+IS\s+([A-Z])\b",
+        r"(?:THEREFORE|THUS)[,:]?\s+(?:THE\s+)?CORRECT\s+(?:ANSWER|OPTION)\s+IS\s+\(([A-Z])\)",
+        r"(?:THEREFORE|THUS)[,:]?\s+(?:THE\s+)?CORRECT\s+(?:ANSWER|OPTION)\s+IS\s+([A-Z])\b",
+        r"\(([A-Z])\)\s*(?:IS\s+)?CORRECT",
+    ]
     for pat in patterns:
         for m in re.finditer(pat, t):
-            ch = m.group(1)
-            if ch in valid and m.start() >= best_pos:
-                best_pos = m.start()
-                best = ch
+            consider(m)
 
     if best:
         return best

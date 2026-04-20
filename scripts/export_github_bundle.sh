@@ -35,7 +35,7 @@ rsync -a --relative \
   "$REPO_ROOT"/./aggregate_quad_steer_cells_for_sweep.py \
   "$REPO_ROOT"/./summarize_math500_*.py \
   "$REPO_ROOT"/./analyze_math500_*.py \
-  "$REPO_ROOT"/./run_*.slurm \
+  "$REPO_ROOT/./log2/slurms" \
   "$OUT/"
 shopt -s nullglob
 runs=( "$REPO_ROOT"/run_*.sh )
@@ -77,7 +77,7 @@ MAN="${OUT}/BUNDLE_MANIFEST.txt"
   echo "  - run_basic_overwrite.py"
   echo "  - utils/ (load_model, SAE, llm_judge, rule_eval 等)"
   echo "  - collect_sweep_results.py, collect_gpqa_mcqa_summary.py"
-  echo "  - 各 run_*.slurm 调用的即上式 + HuggingFace 数据、本机 Python/conda"
+  echo "  - log2/slurms/*.slurm（收录的 Slurm）+ HuggingFace 数据、本机 Python/conda"
   echo ""
   echo "二、不随包提供、需自行准备"
   echo "  - 7B 主模型由 HuggingFace 在运行时拉取 (Open-Reasoner-Zero-7B)"
