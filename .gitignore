@@ -1,0 +1,52 @@
+.env
+wandb
+__pycache__
+.DS_Store
+base_models_reasoning_interp.egg-info/
+
+# 运行时拉取的大模型缓存（勿提交）
+.cache/
+**/hf_cache/
+
+# ---------------------------------------------------------------------------
+# 实验日志（本地跑分输出；体积大，不进 git）
+# ---------------------------------------------------------------------------
+log2/
+logs/
+
+# ---------------------------------------------------------------------------
+# 为何 .git 曾有 ~3.7GiB：主要是「历史里提交过的」下面这些目录，不是 log2。
+# （git ls-files log2 为空 —— log2 从未被跟踪）
+#   train-saes/results  ~14GiB   hybrid/results ~10GiB   generate-responses/results ~2.5GiB
+# 下列路径请勿再 add；若已从历史中删掉大文件，可用 git filter-repo 后再推。
+# ---------------------------------------------------------------------------
+train-saes/results/
+generate-responses/results/
+hybrid/results/
+hybrid-2/results/
+train-vectors/results/
+steering/results/
+compare-base-reasoning/results/
+visualize-saes/results/
+results/
+Vicky/results/
+PST/results/
+data/
+
+# 滚动/评测长文本产物
+**/*.jsonl
+
+# 模型权重与序列化张量（一律不进远程；需要请 Git LFS 或网盘）
+*.pt
+*.pth
+*.safetensors
+*.ckpt
+*.bin
+!**/.gitkeep
+
+# 根目录零散大结果（若存在）
+bias_vector_interp_results.json
+collected_sae_latents*.pt
+
+# 遗留：原先只忽略了部分 train-saes pt，现整目录 results 已忽略
+train-vectors/results/vars/perplexity/
