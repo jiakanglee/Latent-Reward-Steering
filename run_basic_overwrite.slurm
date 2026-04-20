@@ -40,7 +40,7 @@ NUM_EXAMPLES=500
 
 # === 3. 运行脚本 ===
 # 注意：文件名改为了 run_basic_overwrite.py
-$PYCMD -u run_basic_overwrite.py \
+$PYCMD -u steering/run_basic_overwrite.py \
     --model "Open-Reasoner-Zero/Open-Reasoner-Zero-7B" \
     --sae_layer 20 \
     --n_clusters 10 \

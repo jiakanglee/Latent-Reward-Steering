@@ -34,7 +34,7 @@ if [ "$NUM_GPUS" -eq 0 ]; then NUM_GPUS=1; fi
 
 pids=()
 for ((i=0; i<NUM_GPUS; i++)); do
-  CUDA_VISIBLE_DEVICES=$i $PYCMD -u generate_data_7B.py \
+  CUDA_VISIBLE_DEVICES=$i $PYCMD -u collect_data/generate_data_7B.py \
     --dataset mbpp_train_test \
     --max_token 2000 \
     --output_file "${OUTPUT_BASE}.pt" \

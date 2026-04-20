@@ -126,7 +126,7 @@ for ((i=0; i<NUM_GPUS; i++)); do
       PY_ARGS+=(--save_judge_with_text)
     fi
   fi
-  CUDA_VISIBLE_DEVICES=$i $PYCMD -u run_basic_overwrite.py \
+  CUDA_VISIBLE_DEVICES=$i $PYCMD -u steering/run_basic_overwrite.py \
     --model "$MODEL_NAME" \
     --dataset "$DATASET" \
     --sae_layer "$SAE_LAYER" \

@@ -48,7 +48,7 @@ echo "   Output Model: $SAVE_PATH"
 echo "   Epochs: $EPOCHS"
 echo "   Script: train_latent_classifier_7B.py"
 
-# $PYCMD -u train_latent_classifier_7B.py \
+# $PYCMD -u train_reward_model/train_latent_classifier_7B.py \
 #     --data_file "$DATA_FILE" \
 #     --save_path "$SAVE_PATH" \
 #     --epochs $EPOCHS \
@@ -57,7 +57,7 @@ echo "   Script: train_latent_classifier_7B.py"
 
 # echo "✅ Training Finished for learning rate $LR at $(date)"
 
-# $PYCMD -u train_latent_classifier_7B.py \
+# $PYCMD -u train_reward_model/train_latent_classifier_7B.py \
 #     --data_file "$DATA_FILE" \
 #     --save_path "$SAVE_PATH" \
 #     --epochs $EPOCHS \
@@ -65,7 +65,7 @@ echo "   Script: train_latent_classifier_7B.py"
 #     --hidden_dim $HIDDEN_DIM
 # echo "✅ Training Finished for learning rate 0.001 at $(date)"
 
-# $PYCMD -u train_latent_classifier_7B.py \
+# $PYCMD -u train_reward_model/train_latent_classifier_7B.py \
 #     --data_file "$DATA_FILE" \
 #     --save_path "$SAVE_PATH" \
 #     --epochs $EPOCHS \
@@ -73,7 +73,7 @@ echo "   Script: train_latent_classifier_7B.py"
 #     --hidden_dim $HIDDEN_DIM
 # echo "✅ Training Finished for learning rate 0.0006 at $(date)"
 
-$PYCMD -u train_latent_classifier_7B.py \
+$PYCMD -u train_reward_model/train_latent_classifier_7B.py \
     --data_file "$DATA_FILE" \
     --save_path "$SAVE_PATH" \
     --epochs $EPOCHS \
@@ -81,7 +81,7 @@ $PYCMD -u train_latent_classifier_7B.py \
     --hidden_dim $HIDDEN_DIM
 echo "✅ Training Finished for learning rate 0.0003 at $(date)"
 
-# $PYCMD -u train_latent_classifier_7B.py \
+# $PYCMD -u train_reward_model/train_latent_classifier_7B.py \
 #     --data_file "$DATA_FILE" \
 #     --save_path "$SAVE_PATH" \
 #     --epochs $EPOCHS \

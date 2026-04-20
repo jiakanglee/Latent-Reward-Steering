@@ -13,13 +13,15 @@ import math
 import json
 import gc
 
-sys.path.append(os.getcwd())
+_REPO_ROOT = os.path.abspath(os.path.dirname(__file__))
+sys.path.insert(0, _REPO_ROOT)
+sys.path.insert(0, os.path.join(_REPO_ROOT, "steering"))
 
 from datasets import load_dataset
 from utils.utils import load_model, center_and_l2_normalize_torch
 from utils.sae import load_sae
 
-# 复用 run_basic_overwrite 的 LatentTransformer 和 IterativeTransformerSteeringHook
+# 复用 steering/run_basic_overwrite.py 中 LatentTransformer 与 Hook
 from run_basic_overwrite import LatentTransformer, IterativeTransformerSteeringHook, make_confidence_hook
 
 

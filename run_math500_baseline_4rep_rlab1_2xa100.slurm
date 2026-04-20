@@ -73,7 +73,7 @@ echo "rep=${RID} LOG_DIR=${LOG_DIR} NUM_GPUS=${NUM_GPUS} nodelist=rlab1 MODEL=${
 
 pids=()
 for ((i=0; i<NUM_GPUS; i++)); do
-  CUDA_VISIBLE_DEVICES=$i $PYCMD -u run_basic_overwrite.py \
+  CUDA_VISIBLE_DEVICES=$i $PYCMD -u steering/run_basic_overwrite.py \
     --model "$MODEL_NAME" \
     --dataset math500 \
     --baseline_only \

@@ -31,7 +31,7 @@ echo "Training on MBPP latent data"
 echo "Data: $DATA_FILE"
 echo "Date: $(date)"
 
-$PYCMD -u train_latent_classifier_7B.py \
+$PYCMD -u train_reward_model/train_latent_classifier_7B.py \
   --data_file "$DATA_FILE" \
   --save_path "$SAVE_PATH" \
   --epochs 30 \

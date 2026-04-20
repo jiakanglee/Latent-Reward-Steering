@@ -19,79 +19,75 @@ cd cot-interp
 uv sync
 ```
 
-## Generating thinking model responses
+## Workflow (latent reward steering)
 
-To generate responses from thinking models on MMLU-Pro:
+Run everything from the **repository root** (`PYTHONPATH` should include the repo root; Slurm scripts `cd` there automatically). The pipeline is:
 
-```bash
-cd generate-responses
-uv run ./run.sh
-```
+**collect SAE latents → train Transformer reward model → run iterative steering.**
 
-This will generate responses from multiple thinking models (DeepSeek-R1 variants and QwQ) with their reasoning traces.
+### 1. Collect data
 
-## Training taxonomy
-
-To train and evaluate taxonomies:
+Roll out the model with the SAE pipeline and save latent traces (`.pt`) for supervised reward training.
 
 ```bash
-cd train-saes
-uv run ./run.sh
+python collect_data/generate_data_7B.py \
+  --dataset aime24_aime25 \
+  --num_examples 200 \
+  --max_token 4000 \
+  --sae_layer 20 \
+  --n_clusters 10
 ```
 
-This will:
-- Collect activations for each of the selected layers for each model
-- Train all the Sparse Autoencoders (SAEs) for different cluster sizes, for each selected layer on each model
-- Generate titles and descriptions for each cluster in the trained SAEs (5 repetitions by default)
-- Evaluate all the candidate taxonomies (using the 5 default repetitions if available)
-- Plot results
-
-## Annotating thinking traces
-
-To annotate thinking traces using a given taxonomy (specific layer and cluster size):
+Cluster jobs (same defaults, override with env vars in the script):
 
 ```bash
-cd generate-responses
-uv run ./run_annotation.sh
+sbatch collect_data/generate_data_7B.slurm
 ```
 
-This will annotate the thinking traces for each model using the selected taxonomy.
+See `collect_data/README.md` for details and additional Slurm helpers.
 
-## Training steering vectors
+### 2. Train reward model
 
-To train steering vectors for the models used in the paper:
+Train the Transformer classifier on the collected tensors (adjust `--data_file` to match the file produced above).
 
 ```bash
-cd train-vectors
-
-# For each model, run the corresponding script:
-uv run ./run_qwen_1.5b.sh
-uv run ./run_llama_8b.sh
-uv run ./run_qwen_14b.sh
-uv run ./run_qwen_32b_linear_on_deepseek.sh
-uv run ./run_qwen_32b_linear_on_qwq.sh
+python train_reward_model/train_latent_classifier_7B.py \
+  --data_file collected_sae_latents_10dim_2000.pt \
+  --save_path transformer_reward_model.pt \
+  --epochs 50 \
+  --hidden_dim 128
 ```
-
-## Running hybrid model
-
-To run hybrid model experiments:
 
 ```bash
-cd hybrid
-
-# Run experiments for different models:
-uv run ./run_qwen_1.5b.sh
-uv run ./run_qwen_math_1.5b.sh
-uv run ./run_llama_8b.sh
-uv run ./run_qwen_14b.sh
-uv run ./run_qwen_32b_on_deepseek.sh
-uv run ./run_qwen_32b_on_qwq.sh
-
-# Additional ablation experiments:
-uv run ./run_qwen_32b_only_bias.sh
-uv run ./run_qwen_32b_random_firing.sh
-uv run ./run_qwen_32b_random_vectors.sh
+sbatch train_reward_model/train_latent_classifier_7B.slurm
 ```
+
+See `train_reward_model/README.md`.
+
+### 3. Main steering experiment
+
+Run iterative latent steering with a trained reward checkpoint and cluster SAE config aligned with collection.
+
+```bash
+python steering/run_basic_overwrite.py \
+  --model Open-Reasoner-Zero/Open-Reasoner-Zero-7B \
+  --sae_layer 20 \
+  --n_clusters 10 \
+  --reward_model_path transformer_reward_model.pt \
+  --step_size 2.0 \
+  --num_steps 5 \
+  --max_token 2000
+```
+
+```bash
+sbatch steering/run_gpqa_diamond_aime_rm_mcq_collect_ilab2.slurm   # example: GPQA + MCQ sweep
+```
+
+See `steering/README.md` and the `steering/*.slurm` scripts for cluster-specific settings.
+
+### Other code in this repo
+
+The upstream cot-interp style experiments (SAE taxonomy, hybrid models, MMLU response generation, etc.) still live under `generate-responses/`, `train-saes/`, `train-vectors/`, `hybrid/`, etc. Use their `run.sh` / `uv run` entry points if you reproduce the original paper pipeline.
 
 ## Citation
 

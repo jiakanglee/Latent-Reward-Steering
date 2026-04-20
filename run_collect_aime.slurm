@@ -28,7 +28,7 @@ echo "Collecting AIME24 + AIME25 | max_token=4000"
 echo "Date: $(date)"
 
 # Add --load_in_8bit if OOM on A4000 (16GB)
-$PYCMD -u generate_data_7B.py \
+$PYCMD -u collect_data/generate_data_7B.py \
   --dataset aime24_aime25 \
   --max_token 4000 \
   --output_file collected_sae_latents_10dim_4000_aime24_aime25.pt

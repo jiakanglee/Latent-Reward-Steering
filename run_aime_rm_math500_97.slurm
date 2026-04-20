@@ -54,7 +54,7 @@ for REWARD in $REWARD_LIST; do
 
   pids=()
   for ((i=0; i<NUM_GPUS; i++)); do
-    CUDA_VISIBLE_DEVICES=$i $PYCMD -u run_basic_overwrite.py \
+    CUDA_VISIBLE_DEVICES=$i $PYCMD -u steering/run_basic_overwrite.py \
       --model "Open-Reasoner-Zero/Open-Reasoner-Zero-7B" \
       --sae_layer 20 \
       --n_clusters 10 \
