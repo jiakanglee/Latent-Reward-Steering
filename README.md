@@ -223,26 +223,3 @@ The reward–confidence gate skips **72.1%** of tokens, focusing intervention on
 
 ---
 
-## Citation
-
-If you find this work useful, please cite:
-
-```bibtex
-@misc{lrs2025,
-  title  = {Latent Reward Steering: Adaptive Inference-Time Framework that
-             Implicitly Promotes Cognitive Behaviors in Reasoning LLMs},
-  author = {Anonymous},
-  year   = {2025},
-  note   = {ACL submission}
-}
-```
-
----
-
-## Acknowledgements
-
-This project builds on the interpretability codebase from:
-
-> Constantin Venhoff, Iván Arcuschin, Philip Torr, Arthur Conmy, and Neel Nanda.
-> *Base Models Know How to Reason, Thinking Models Learn When.*
-> arXiv:2510.07364, 2025.
