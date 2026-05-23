@@ -66,9 +66,23 @@ Default thresholds: `τ_r = 0.9`, `τ_c = 0.72`. Steering is applied at SAE laye
 
 ### Requirements
 
-- Python 3.10+
-- `uv` (`pip install uv` or see the [uv docs](https://docs.astral.sh/uv/getting-started/installation/))
-- GPU with sufficient VRAM (RTX A4500 / A5000 / A6000 recommended)
+- Python 3.12 (exactly `>=3.12,<3.13`)
+- [`uv`](https://docs.astral.sh/uv/getting-started/installation/) package manager (`pip install uv`)
+- CUDA-compatible GPU (experiments run on RTX A4500 / A5000 / A6000)
+
+### Key dependencies (installed automatically via `uv sync`)
+
+| Package | Role |
+|---------|------|
+| `transformers` | LLM loading and generation |
+| `vllm` | Fast inference backend |
+| `sae-lens` | Pretrained Sparse Autoencoder (SAE) loading |
+| `torch` | Core deep learning framework |
+| `nnsight` | Activation intervention and patching |
+| `transformer-lens` | Mechanistic interpretability utilities |
+| `accelerate` | Multi-GPU / mixed-precision support |
+| `datasets` | Benchmark dataset loading |
+| `wandb` | Experiment tracking (optional) |
 
 ### Install
 
@@ -77,6 +91,8 @@ git clone https://github.com/jiakanglee/Latent-Reward-Steering.git
 cd Latent-Reward-Steering
 uv sync
 ```
+
+All dependencies are pinned in `pyproject.toml` and `uv.lock`. No manual `pip install` needed.
 
 ---
 
