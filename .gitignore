@@ -15,8 +15,14 @@ log2/
 
 logs/
 
-# 仓库根目录 *.slurm 不入库（副本维护在 log2/slurms/）。子目录 PST/、Vicky/ 等不受影响。
+# 仓库根目录 *.slurm 默认不入库。以下 GPQA / IneqMath 作业脚本纳入版本管理（子目录 steering/、PST/ 等不受影响）。
 /*.slurm
+!run_gpqa_diamond_aime_rm.slurm
+!run_gpqa_diamond_aime_rm_mcq_collect_ilab2.slurm
+!run_gpqa_diamond_baseline_official.slurm
+!run_dump_gpqa_decode_sample.slurm
+!run_ineqmath_aime_rm.slurm
+!run_ineqmath_steer_sweep.slurm
 
 # ---------------------------------------------------------------------------
 # 为何 .git 曾有 ~3.7GiB：主要是「历史里提交过的」下面这些目录，不是 log2。
@@ -35,6 +41,7 @@ visualize-saes/results/
 results/
 Vicky/results/
 PST/results/
+LRS/Results/
 data/
 
 # 滚动/评测长文本产物

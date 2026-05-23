@@ -1,63 +1,119 @@
-# Base Models Know How to Reason, Thinking Models Learn When
+# Latent Reward Steering (LRS)
 
-Code for the paper [Base Models Know How to Reason, Thinking Models Learn When](https://arxiv.org/abs/2510.07364).
+**Latent Reward Steering: Adaptive Inference-Time Framework that Implicitly Promotes Cognitive Behaviors in Reasoning LLMs**
 
-**Website:** [thinking-llms-interp.com](https://thinking-llms-interp.com/)
+> Anonymous ACL submission
+
+---
+
+## Overview
+
+![LRS Framework](method.pdf)
+
+Strong reasoning in LLMs depends not only on model knowledge but also on **when and how cognitive behaviors are deployed** during generation. Existing methods for cognitive-behavior control — whether prompt-based or representation-level steering — commit to predefined behaviors and fixed intervention directions that may not match the local reasoning state.
+
+**Latent Reward Steering (LRS)** takes a different approach: instead of specifying *which* cognitive behaviors to inject, LRS trains a **latent reward model** from successful and unsuccessful reasoning traces to estimate the quality of intermediate SAE latent states. During inference, reward gradients provide state-specific correction directions, while a **reward–confidence gate** restricts intervention to steps flagged as unreliable — leaving healthy reasoning steps untouched.
+
+---
+
+## Main Results
+
+All results are reported under **greedy decoding, zero-shot**. Values in parentheses denote absolute gains of LRS BASIC / LRS over the Base model. LRS BASIC is ungated; full LRS uses reward–confidence gating.
+
+### Open-Reasoner-7B
+
+| Dataset | Base | LRS BASIC | LRS | CoT | Few-shot |
+|---------|------|-----------|-----|-----|----------|
+| MATH-500 | 79.4 | 83.0 (+3.6) | **83.8 (+4.4)** | 81.4 | 81.0 |
+| AIME 2024 | 16.6 | 16.6 (+0.0) | **26.6 (+10.0)** | 13.3 | 13.3 |
+| AIME 2025 | 16.6 | 20.0 (+3.4) | **26.6 (+10.0)** | 13.3 | 10.0 |
+| GPQA-Diamond | 32.3 | 30.8 (−1.5) | **39.4 (+7.1)** | 35.9 | 38.4 |
+| AMC23 | 50.0 | 45.0 (−5.0) | **60.0 (+10.0)** | 55.0 | 65.0 |
+| IneqMath | 46.0 | 52.0 (+6.0) | **60.0 (+14.0)** | 48.0 | 48.0 |
+
+### Open-Reasoner-1.5B
+
+| Dataset | Base | LRS BASIC | LRS | CoT | Few-shot |
+|---------|------|-----------|-----|-----|----------|
+| MATH-500 | 59.2 | 59.0 (−0.2) | **60.8 (+1.6)** | 58.6 | 57.2 |
+| AIME 2024 | 3.3 | 0.0 (−3.3) | **13.3 (+10.0)** | 6.7 | 6.7 |
+| AIME 2025 | 3.3 | 0.0 (−3.3) | **6.6 (+3.3)** | 0.0 | 3.3 |
+| GPQA-Diamond | 18.2 | 15.7 (−2.5) | **22.8 (+4.6)** | 17.2 | 17.2 |
+| AMC23 | 30.0 | 32.5 (+2.5) | **37.5 (+7.5)** | 32.5 | 30.0 |
+| IneqMath | 29.0 | 28.0 (−1.0) | **34.0 (+5.0)** | 30.0 | 28.0 |
+
+LRS improves over standard decoding on **all six benchmarks** for both model sizes without changing model weights. The ungated variant LRS BASIC is less stable, confirming that selective intervention via the reward–confidence gate is essential.
+
+---
+
+## Method
+
+LRS operates in three stages:
+
+1. **Latent Trace Construction** — Run a frozen reasoning LLM + pretrained SAE to collect sparse latent sequences, labeled by final-answer correctness.
+2. **Latent Reward Learning** — Train a lightweight Transformer reward model on the latent traces to predict trajectory quality without any behavior annotations.
+3. **Online Selective Latent Repair** — At inference time, a reward–confidence gate identifies fragile latent states; reward gradients then optimize those states via normalized gradient ascent, and the latent difference is decoded back into the hidden activation as a residual correction.
+
+The **reward–confidence gate** triggers steering when:
+- The reward score `r_t < τ_r` (low-quality state), **or**
+- `r_t ≥ τ_r` but the previous-token confidence `c_{t-1} < τ_c` (borderline quality, uncertain next step)
+
+Default thresholds: `τ_r = 0.9`, `τ_c = 0.72`. Steering is applied at SAE layer 20 in a 10-dimensional latent space.
+
+---
 
 ## Setup
 
 ### Requirements
 
 - Python 3.10+
-- `uv` installed (`pip install uv` or see the [uv docs](https://docs.astral.sh/uv/getting-started/installation/))
+- `uv` (`pip install uv` or see the [uv docs](https://docs.astral.sh/uv/getting-started/installation/))
+- GPU with sufficient VRAM (RTX A4500 / A5000 / A6000 recommended)
 
 ### Install
 
 ```bash
-git clone https://github.com/cvenhoff/cot-interp.git
-cd cot-interp
+git clone https://github.com/jiakanglee/Latent-Reward-Steering.git
+cd Latent-Reward-Steering
 uv sync
 ```
 
-## Workflow (latent reward steering)
+---
 
-Run everything from the **repository root**. Slurm scripts assume that directory, set `PYTHONPATH`, and write under `log2/`.
+## Workflow (Latent Reward Steering Pipeline)
 
-End-to-end **AIME** pipeline (matches the checked-in Slurm under `collect_data/`, `train_reward_model/`, `steering/`):
+Run everything from the **repository root**. Slurm scripts assume that directory, set `PYTHONPATH`, and write logs under `log2/`.
 
-| Stage | Artifact |
-|-------|----------|
-| Collect | `collected_sae_latents_10dim_4000_aime24_aime25.pt` |
-| Train RM | `transformer_reward_model_aime_best.pt` (written next to `--save_path` with `_best` suffix) |
-| Steer | Uses `transformer_reward_model_aime_best.pt`; SAE layer **20**, clusters **10**, ORZ-7B |
+All LRS scripts live under `LRS/`:
 
-Defaults in the scripts: **`aime24_aime25`** rollouts, **`max_token=4000`**, training **`epochs=30`**, **`lr=5e-4`**. Steering jobs (e.g. `run_aime24.slurm`) use **`max_token=4000`**, **`num_steps=4`**, **`reward_threshold=0.9`**, **`confidence_threshold=0.72`**, **`step_size=1.15`**.
+```
+LRS/
+├── collect_data/          # Stage 1: collect SAE latent traces
+├── train_reward_model/    # Stage 2: train the latent reward model
+└── Steering/              # Stage 3: run inference-time steering
+```
 
-### 1. Collect data (AIME 2024 + AIME 2025 latents)
-
-Same call as `collect_data/run_collect_aime.slurm`:
+### Stage 1 — Collect Latent Traces (AIME 2024 + 2025)
 
 ```bash
-python collect_data/generate_data_7B.py \
+python LRS/collect_data/generate_data_7B.py \
   --dataset aime24_aime25 \
   --max_token 4000 \
   --output_file collected_sae_latents_10dim_4000_aime24_aime25.pt
 ```
 
-Cluster:
+Cluster (Slurm):
 
 ```bash
-sbatch collect_data/run_collect_aime.slurm
+sbatch LRS/collect_data/run_collect_aime.slurm
 ```
 
-(Optional: `--load_in_8bit` if you hit OOM on a small GPU.)
+Output: `collected_sae_latents_10dim_4000_aime24_aime25.pt`
 
-### 2. Train reward model (on that `.pt`)
-
-Same as `train_reward_model/run_train_aime_classifier.slurm`:
+### Stage 2 — Train the Latent Reward Model
 
 ```bash
-python train_reward_model/train_latent_classifier_7B.py \
+python LRS/train_reward_model/train_latent_classifier_7B.py \
   --data_file collected_sae_latents_10dim_4000_aime24_aime25.pt \
   --save_path transformer_reward_model_aime.pt \
   --epochs 30 \
@@ -65,26 +121,32 @@ python train_reward_model/train_latent_classifier_7B.py \
   --hidden_dim 128
 ```
 
-This produces **`transformer_reward_model_aime_best.pt`** in the repo root.
+Cluster (Slurm):
 
 ```bash
-sbatch train_reward_model/run_train_aime_classifier.slurm
+sbatch LRS/train_reward_model/run_train_aime_classifier.slurm
 ```
 
-### 3. Main experiment (AIME steering)
+Output: `transformer_reward_model_aime_best.pt` (best checkpoint saved next to `--save_path`)
 
-Place or symlink **`transformer_reward_model_aime_best.pt`** in the repo root (the Slurm below expects that filename). Then run the full benchmark, e.g. **AIME 2024** (30 problems, 2× GPU shard in the template):
+### Stage 3 — Run Inference-Time Steering
 
+Place `transformer_reward_model_aime_best.pt` in the repo root, then:
+
+**AIME 2024:**
 ```bash
-sbatch steering/run_aime24.slurm
+sbatch LRS/Steering/run_aime24.slurm
 ```
 
-For **AIME 2025**, use `steering/run_aime25.slurm`. Larger hyperparameter sweeps live in `steering/run_aime24_steer_sweep_ilab2.slurm`, `steering/run_aime25_steer_sweep_ilab2.slurm`, etc.; all point at `transformer_reward_model_aime_best.pt`.
+**AIME 2025:**
+```bash
+sbatch LRS/Steering/run_aime25.slurm
+```
 
-Minimal manual invocation (same knob bundle as `run_aime24.slurm`; adjust `--dataset` / `--num_examples` for AIME25):
+**Manual invocation** (same hyperparameters as `run_aime24.slurm`):
 
 ```bash
-python steering/run_basic_overwrite.py \
+python LRS/Steering/run_basic_overwrite.py \
   --model Open-Reasoner-Zero/Open-Reasoner-Zero-7B \
   --sae_layer 20 --n_clusters 10 \
   --reward_model_path transformer_reward_model_aime_best.pt \
@@ -94,24 +156,86 @@ python steering/run_basic_overwrite.py \
   --print_response --save_judge_reason
 ```
 
-See `collect_data/README.md`, `train_reward_model/README.md`, and `steering/README.md` for paths and extra Slurm jobs.
+Large-scale hyperparameter sweeps: `LRS/Steering/run_aime24_steer_sweep_ilab2.slurm`, `run_aime25_steer_sweep_ilab2.slurm`, etc.
 
-### Other code in this repo
+### Hyperparameter Configurations
 
-The upstream cot-interp style experiments (SAE taxonomy, hybrid models, MMLU response generation, etc.) still live under `generate-responses/`, `train-saes/`, `train-vectors/`, `hybrid/`, etc. Use their `run.sh` / `uv run` entry points if you reproduce the original paper pipeline.
+| Dataset | Model | K | α | Reward τ | Confidence τ | Device |
+|---------|-------|---|---|----------|--------------|--------|
+| MATH-500 | ORZ-7B | 1 | 1.400 | 0.8 | 0.69 | RTX A4500 |
+| AIME24 | ORZ-7B | 2 | 0.295 | 0.9 | 0.72 | RTX A4500 |
+| AIME25 | ORZ-7B | 3 | 1.320 | 0.9 | 0.72 | RTX A4500 |
+| GPQA-Diamond | ORZ-7B | 4 | 1.150 | 0.9 | 0.72 | RTX A5000 |
+| AMC23 | ORZ-7B | 1 | 1.400 | 0.9 | 0.72 | RTX A4500 |
+| IneqMath | ORZ-7B | 2 | 0.700 | 0.9 | 0.72 | RTX A5000 |
+| MATH-500 | ORZ-1.5B | 1 | 0.100 | 0.9 | 0.72 | RTX A6000 |
+| AIME24 | ORZ-1.5B | 4 | 0.900 | 0.9 | 0.72 | RTX A4500 |
+| AIME25 | ORZ-1.5B | 2 | 0.400 | 0.9 | 0.72 | RTX A6000 |
+| GPQA-Diamond | ORZ-1.5B | 3 | 1.000 | 0.9 | 0.72 | RTX A5000 |
+| AMC23 | ORZ-1.5B | 4 | 0.300 | 0.9 | 0.72 | RTX A6000 |
+| IneqMath | ORZ-1.5B | 2 | 1.100 | 0.9 | 0.72 | RTX A6000 |
+
+*K = number of latent optimization steps; α = step size.*
+
+---
+
+## Repository Structure
+
+```
+.
+├── LRS/                          # Main LRS pipeline (this paper)
+│   ├── collect_data/             # Latent trace collection
+│   ├── train_reward_model/       # Reward model training
+│   ├── Steering/                 # Inference-time steering scripts
+│   └── Interpretability/         # SAE interpretability analysis
+├── hybrid/                       # Hybrid model experiments
+├── train-saes/                   # SAE training
+├── train-vectors/                # Steering vector training
+├── visualize-saes/               # SAE visualization
+├── utils/                        # Shared utilities
+├── method.pdf                    # Framework diagram
+├── pyproject.toml
+└── environment.yaml
+```
+
+---
+
+## Inference Efficiency
+
+LRS incurs a modest overhead with no change to model weights:
+
+| Metric | Base | LRS |
+|--------|------|-----|
+| Avg. generated tokens | 2595 | 2596 |
+| Avg. wall-clock / problem (s) | 115.3 | 156.2 |
+| Slowdown ratio | 1.00× | **1.35×** |
+| Steered tokens (%) | — | 27.9% |
+| Avg. steering triggers / problem | — | 725 |
+
+The reward–confidence gate skips **72.1%** of tokens, focusing intervention only on fragile states.
+
+---
 
 ## Citation
 
 If you find this work useful, please cite:
 
 ```bibtex
-@misc{venhoff2025basemodelsknowreason,
-      title={Base Models Know How to Reason, Thinking Models Learn When},
-      author={Constantin Venhoff and Iván Arcuschin and Philip Torr and Arthur Conmy and Neel Nanda},
-      year={2025},
-      eprint={2510.07364},
-      archivePrefix={arXiv},
-      primaryClass={cs.AI},
-      url={https://arxiv.org/abs/2510.07364},
+@misc{lrs2025,
+  title  = {Latent Reward Steering: Adaptive Inference-Time Framework that
+             Implicitly Promotes Cognitive Behaviors in Reasoning LLMs},
+  author = {Anonymous},
+  year   = {2025},
+  note   = {ACL submission}
 }
 ```
+
+---
+
+## Acknowledgements
+
+This project builds on the interpretability codebase from:
+
+> Constantin Venhoff, Iván Arcuschin, Philip Torr, Arthur Conmy, and Neel Nanda.
+> *Base Models Know How to Reason, Thinking Models Learn When.*
+> arXiv:2510.07364, 2025.

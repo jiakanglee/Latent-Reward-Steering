@@ -1,7 +1,13 @@
 import time
 from openai import OpenAI
 
-from .rule_eval import evaluate_gpqa, evaluate_math, evaluate_mbpp, is_mbpp_executable_tests
+from .rule_eval import (
+    evaluate_gpqa,
+    evaluate_math,
+    evaluate_mbpp,
+    ineqmath_gold_choice_letter,
+    is_mbpp_executable_tests,
+)
 
 # =========================================================
 # 1. 配置 DeepSeek 客户端
@@ -112,12 +118,25 @@ def evaluate_answer(
     model_name,
     dataset_type="math",
     test_list=None,
+    ineqmath_question_idx=None,
 ):
     """
     MATH / MCQA(GPQA 等) / Coding(MBPP)：默认使用 rule-based 或执行评测，无 API 费用。
     dataset_type == \"classification\"：仍使用 LLM judge。
+
+    ineqmath_question_idx：仅 ``dataset_type=\"math\"`` 时生效。若 ``>= 50``，对 IneqMath 走
+    ``extract_choice_letter`` 与金标 ``(A)-(F)`` 比对（与 GPQA 同源）；否则仍用 ``math_verify``。
+    官方 ``dev.json`` 为前 50 bound / 后 50 relation；``test.json`` 题序不同，慎用。
     """
     if dataset_type == "math":
+        if ineqmath_question_idx is not None and int(ineqmath_question_idx) >= 50:
+            gl = ineqmath_gold_choice_letter(answer)
+            if gl:
+                ok, sub = evaluate_gpqa(model_answer, gl)
+                tag = "rule_ineqmath:idx50+_gpqa"
+                if ok:
+                    return True, f"{tag}:{sub}"
+                return False, f"{tag}:{sub}"
         return evaluate_math(model_answer, answer, correct_answer)
     if dataset_type == "mcqa":
         return evaluate_gpqa(model_answer, correct_answer)
