@@ -66,23 +66,9 @@ Default thresholds: `τ_r = 0.9`, `τ_c = 0.72`. Steering is applied at SAE laye
 
 ### Requirements
 
-- Python 3.12 (exactly `>=3.12,<3.13`)
-- [`uv`](https://docs.astral.sh/uv/getting-started/installation/) package manager (`pip install uv`)
+- Python 3.12
+- [`uv`](https://docs.astral.sh/uv/getting-started/installation/) (`pip install uv` or see the uv docs)
 - CUDA-compatible GPU (experiments run on RTX A4500 / A5000 / A6000)
-
-### Key dependencies (installed automatically via `uv sync`)
-
-| Package | Role |
-|---------|------|
-| `transformers` | LLM loading and generation |
-| `vllm` | Fast inference backend |
-| `sae-lens` | Pretrained Sparse Autoencoder (SAE) loading |
-| `torch` | Core deep learning framework |
-| `nnsight` | Activation intervention and patching |
-| `transformer-lens` | Mechanistic interpretability utilities |
-| `accelerate` | Multi-GPU / mixed-precision support |
-| `datasets` | Benchmark dataset loading |
-| `wandb` | Experiment tracking (optional) |
 
 ### Install
 
@@ -92,7 +78,16 @@ cd Latent-Reward-Steering
 uv sync
 ```
 
-All dependencies are pinned in `pyproject.toml` and `uv.lock`. No manual `pip install` needed.
+`uv sync` reads `pyproject.toml` and `uv.lock` to install all dependencies into a local `.venv`. To run scripts, either activate the environment or prefix with `uv run`:
+
+```bash
+# Option 1: activate
+source .venv/bin/activate
+python LRS/Steering/run_basic_overwrite.py ...
+
+# Option 2: uv run (no activation needed)
+uv run python LRS/Steering/run_basic_overwrite.py ...
+```
 
 ---
 
