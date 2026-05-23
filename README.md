@@ -8,7 +8,7 @@
 
 ## Overview
 
-![LRS Framework](method.pdf)
+![LRS Framework](method-1.png)
 
 Strong reasoning in LLMs depends not only on model knowledge but also on **when and how cognitive behaviors are deployed** during generation. Existing methods for cognitive-behavior control — whether prompt-based or representation-level steering — commit to predefined behaviors and fixed intervention directions that may not match the local reasoning state.
 
