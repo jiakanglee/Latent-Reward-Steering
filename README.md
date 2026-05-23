@@ -2,10 +2,6 @@
 
 **Latent Reward Steering: Adaptive Inference-Time Framework that Implicitly Promotes Cognitive Behaviors in Reasoning LLMs**
 
-> Anonymous ACL submission
-
----
-
 ## Overview
 
 ![LRS Framework](method-1.png)
@@ -161,7 +157,7 @@ python LRS/Steering/run_basic_overwrite.py \
   --model Open-Reasoner-Zero/Open-Reasoner-Zero-7B \
   --sae_layer 20 --n_clusters 10 \
   --reward_model_path transformer_reward_model_aime_best.pt \
-  --step_size 1.15 --num_steps 4 --max_token 4000 \
+  --step_size 0.295 --num_steps 2 --max_token 4000 \
   --reward_threshold 0.9 --confidence_threshold 0.72 \
   --dataset aime24 --num_examples 30 \
   --print_response --save_judge_reason
