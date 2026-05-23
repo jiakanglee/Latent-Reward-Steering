@@ -22,13 +22,13 @@ All results are reported under **greedy decoding, zero-shot**. Values in parenth
 
 ### Open-Reasoner-7B
 
-| Dataset | Base | LRS BASIC | LRS | CoT | Few-shot |
+| Dataset | Base | LRS BASIC | LRS | CoT | Few-shot （5-shot) |
 |---------|------|-----------|-----|-----|----------|
 | MATH-500 | 79.4 | 83.0 (+3.6) | **83.8 (+4.4)** | 81.4 | 81.0 |
 | AIME 2024 | 16.6 | 16.6 (+0.0) | **26.6 (+10.0)** | 13.3 | 13.3 |
 | AIME 2025 | 16.6 | 20.0 (+3.4) | **26.6 (+10.0)** | 13.3 | 10.0 |
 | GPQA-Diamond | 32.3 | 30.8 (−1.5) | **39.4 (+7.1)** | 35.9 | 38.4 |
-| AMC23 | 50.0 | 45.0 (−5.0) | **60.0 (+10.0)** | 55.0 | 65.0 |
+| AMC23 | 50.0 | 45.0 (−5.0) | 60.0 (+10.0) | 55.0 | **65.0** |
 | IneqMath | 46.0 | 52.0 (+6.0) | **60.0 (+14.0)** | 48.0 | 48.0 |
 
 ### Open-Reasoner-1.5B
