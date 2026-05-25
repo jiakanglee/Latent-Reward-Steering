@@ -223,3 +223,7 @@ The reward–confidence gate skips **72.1%** of tokens, focusing intervention on
 
 ---
 
+## Acknowledgement
+
+Our implementation is based on the codebase of [thinking-llms-interp](https://github.com/cvenhoff/thinking-llms-interp). We gratefully acknowledge the authors for open-sourcing their work, which provided an important foundation for this project.
+
