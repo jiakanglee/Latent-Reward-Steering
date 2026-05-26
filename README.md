@@ -100,11 +100,11 @@ LRS/
 └── Steering/              # Stage 3: run inference-time steering
 ```
 
-### Stage 1 — Collect Latent Traces (AIME 2024 + 2025)
+### Stage 1 — Collect Latent Traces (AIME 2022 + 2023)
 
 ```bash
 python LRS/collect_data/generate_data_7B.py \
-  --dataset aime24_aime25 \
+  --dataset aime22_aime23 \
   --max_token 4000 \
   --output_file collected_sae_latents_10dim_4000_aime24_aime25.pt
 ```

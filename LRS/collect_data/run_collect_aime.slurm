@@ -11,8 +11,8 @@
 #SBATCH --nodelist=rlab1
 #SBATCH --gres=gpu:4500_ada:2
 
-# Collect SAE latents on AIME24 + AIME25, max_token=4000
-# Output: collected_sae_latents_10dim_4000_aime24_aime25.pt
+# Collect SAE latents on AIME22 + AIME23, max_token=4000
+# Output: collected_sae_latents_10dim_4000_aime22_aime23.pt
 
 export PYTHONNOUSERSITE=1
 source /common/home/jl3614/miniconda/etc/profile.d/conda.sh
@@ -24,13 +24,13 @@ export PYTHONPATH=$PWD:$PYTHONPATH
 
 if [ -x "$PWD/.venv/bin/python3" ]; then PYCMD="$PWD/.venv/bin/python3"; else PYCMD="python"; fi
 
-echo "Collecting AIME24 + AIME25 | max_token=4000"
+echo "Collecting AIME22 + AIME23 | max_token=4000"
 echo "Date: $(date)"
 
 # Add --load_in_8bit if OOM on A4000 (16GB)
 $PYCMD -u collect_data/generate_data_7B.py \
-  --dataset aime24_aime25 \
+  --dataset aime22_aime23 \
   --max_token 4000 \
-  --output_file collected_sae_latents_10dim_4000_aime24_aime25.pt
+  --output_file collected_sae_latents_10dim_4000_aime22_aime23.pt
 
 echo "Done. Date: $(date)"
