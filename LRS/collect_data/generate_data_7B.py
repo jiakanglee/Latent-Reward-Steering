@@ -81,7 +81,7 @@ def load_dataset_by_name(dataset_name):
         ds22 = load_dataset("allenai/aime-2022-2025")["train"]
         ds23 = load_dataset("allenai/aime-2022-2025")["train"]
         items = [(ds22[i], "aime22") for i in range(29)]
-        items += [(ds23[i], "aime23") for i in range(30，59)]
+        items += [(ds23[i], "aime23") for i in range(30,59)]
         return items
     elif dataset_name == "mbpp":
         ds = load_dataset("google-research-datasets/mbpp", "full")["train"]  # 374 题
@@ -104,7 +104,7 @@ def main():
     parser.add_argument('--num_examples', type=int, default=None,
         help='Max examples to collect (default: all for aime, 200 for math500)')
     parser.add_argument('--max_token', type=int, default=4000) 
-    parser.add_argument('--dataset', type=str, choices=['math500', 'aime24', 'aime25', 'aime24_aime25', 'aime22_aime23'，'mbpp', 'mbpp_train_test'],
+    parser.add_argument('--dataset', type=str, choices=['math500', 'aime24', 'aime25', 'aime24_aime25', 'aime22_aime23','mbpp', 'mbpp_train_test'],
         default='aime24_aime25', help='Dataset to collect from')
     parser.add_argument('--output_file', type=str, default=None,
         help='Output file (default: collected_sae_latents_10dim_{max_token}_{dataset}.pt)')
